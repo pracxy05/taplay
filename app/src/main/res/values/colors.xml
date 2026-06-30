@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="taplay_primary">#7C3AED</color>
+    <color name="taplay_secondary">#A78BFA</color>
+    <color name="taplay_accent">#10B981</color>
+    <color name="taplay_error">#EF4444</color>
+    <color name="taplay_warning">#F59E0B</color>
+    <color name="taplay_bg_dark">#0F0A1E</color>
+    <color name="taplay_surface">#1A1033</color>
+    <color name="taplay_surface_2">#241848</color>
+    <color name="taplay_text_primary">#F9FAFB</color>
+    <color name="taplay_text_muted">#9CA3AF</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>
