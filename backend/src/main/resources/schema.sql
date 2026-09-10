@@ -1,0 +1,43 @@
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    balance DOUBLE PRECISION NOT NULL DEFAULT 540.0,
+    credits INT NOT NULL DEFAULT 54,
+    total_tokens INT NOT NULL DEFAULT 120,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS arcade_machines (
+    machine_id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    tag_id VARCHAR(100) NOT NULL UNIQUE,
+    cost_credits INT NOT NULL,
+    cost_amount DOUBLE PRECISION NOT NULL,
+    genre VARCHAR(50),
+    difficulty VARCHAR(50),
+    emoji VARCHAR(10),
+    session_duration INT NOT NULL DEFAULT 300
+);
+
+CREATE TABLE IF NOT EXISTS transactions (
+    id VARCHAR(100) PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    machine_id VARCHAR(50),
+    amount DOUBLE PRECISION NOT NULL,
+    credits INT NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS fraud_alerts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    tag_id VARCHAR(100),
+    amount DOUBLE PRECISION,
+    anomaly_score DOUBLE PRECISION,
+    reason VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

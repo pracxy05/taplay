@@ -5,12 +5,13 @@ plugins {
 
 android {
     namespace = "com.taplay.app"
-    compileSdk = 36
+    compileSdk = 34
+    buildToolsVersion = "34.0.0"
 
     defaultConfig {
         applicationId = "com.taplay.app"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -24,19 +25,25 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            // Appends ".emulator" so this APK gets a separate package name:
+            // com.taplay.app.emulator — installs alongside the main Taplay app.
+            applicationIdSuffix = ".emulator"
+            // Override the app_name string resource at build time so the
+            // launcher shows "Taplay Emulator" instead of "Taplay".
+            resValue("string", "app_name", "Taplay Emulator")
+        }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlin {
-        jvmToolchain(11)
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {
         compose = true
+        resValues = true
+        buildConfig = true
     }
 }
 
