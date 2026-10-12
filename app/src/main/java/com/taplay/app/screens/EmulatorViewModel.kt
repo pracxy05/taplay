@@ -1,5 +1,6 @@
 package com.taplay.app.screens
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.taplay.app.data.api.TaplayApiService
@@ -17,6 +18,8 @@ class EmulatorViewModel(
     private val _sessionStatus = MutableStateFlow<MachineSessionStatus?>(null)
     val sessionStatus: StateFlow<MachineSessionStatus?> = _sessionStatus.asStateFlow()
 
+    private val targetMachineId = "MACH-PHONE-2"
+
     init {
         startPolling()
     }
@@ -25,12 +28,16 @@ class EmulatorViewModel(
         viewModelScope.launch {
             while (true) {
                 try {
-                    val response = apiService.getMachineSessionStatus("MACH-PHONE-2")
-                    if (response.isSuccessful) {
-                        _sessionStatus.value = response.body()
+                    val response = apiService.getMachineSessionStatus(targetMachineId)
+                    if (response.isSuccessful && response.body() != null) {
+                        val body = response.body()!!
+                        Log.d("EmulatorViewModel", "Poll success: state=${body.sessionStatus}, remaining=${body.timeRemaining}s")
+                        _sessionStatus.value = body
+                    } else {
+                        Log.w("EmulatorViewModel", "Poll warning response code: ${response.code()}")
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    Log.e("EmulatorViewModel", "Poll exception: ${e.localizedMessage}")
                 }
                 delay(1000) // Poll every 1 second
             }

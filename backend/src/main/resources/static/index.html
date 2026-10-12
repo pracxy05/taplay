@@ -149,6 +149,8 @@
     </div>
 
     <script>
+        let lastLoggedTxn = null;
+
         async function pollStatus() {
             try {
                 const res = await fetch('/api/v1/transaction/status?machineId=MACH-PHONE-2');
@@ -156,11 +158,20 @@
                     const data = await res.json();
                     const stateEl = document.getElementById('machine-state');
                     const timerEl = document.getElementById('timer-val');
+                    const logFeed = document.getElementById('log-feed');
 
                     if (data.sessionStatus === 'ACTIVE') {
                         stateEl.className = 'status-pill active';
                         stateEl.innerText = 'GAME IN PROGRESS';
                         timerEl.innerText = data.timeRemaining + 's';
+
+                        if (data.lastTransactionId && data.lastTransactionId !== lastLoggedTxn) {
+                            lastLoggedTxn = data.lastTransactionId;
+                            const li = document.createElement('li');
+                            li.className = 'log-item';
+                            li.innerHTML = `<span>[TXN APPROVED] ${data.lastTransactionId} | Machine: ${data.machineId} | Player: ${data.userName || 'Praharsh'} | Game: ${data.gameName || 'Cyber Strike 2077'}</span><span class="fraud-pass">ML VERIFIED (LEGIT)</span>`;
+                            logFeed.prepend(li);
+                        }
                     } else {
                         stateEl.className = 'status-pill idle';
                         stateEl.innerText = 'IDLE';

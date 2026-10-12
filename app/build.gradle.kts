@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "com.taplay.app"
     compileSdk = 34
-    buildToolsVersion = "34.0.0"
+    // Removed buildToolsVersion "34.0.0" to suppress the Gradle build warning
 
     defaultConfig {
         applicationId = "com.taplay.app"
@@ -26,11 +26,7 @@ android {
             )
         }
         debug {
-            // Appends ".emulator" so this APK gets a separate package name:
-            // com.taplay.app.emulator — installs alongside the main Taplay app.
             applicationIdSuffix = ".emulator"
-            // Override the app_name string resource at build time so the
-            // launcher shows "Taplay Emulator" instead of "Taplay".
             resValue("string", "app_name", "Taplay Emulator")
         }
     }

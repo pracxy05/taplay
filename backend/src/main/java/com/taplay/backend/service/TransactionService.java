@@ -70,26 +70,27 @@ public class TransactionService {
             return userRepository.save(newUser);
         });
 
-        // Find Arcade Machine by Tag UID (e.g. 04A289C2 or MACH-PHONE-2)
-        Optional<ArcadeMachineEntity> machineOpt = machineRepository.findByTagId(req.getTagId());
+        // Resolve or create machine entity
+        String tagId = (req.getTagId() == null || req.getTagId().trim().isEmpty()) ? "MACH-PHONE-2" : req.getTagId();
+        Optional<ArcadeMachineEntity> machineOpt = machineRepository.findByTagId(tagId);
         if (machineOpt.isEmpty()) {
-            machineOpt = machineRepository.findById(req.getTagId());
+            machineOpt = machineRepository.findById(tagId);
         }
 
         ArcadeMachineEntity machine = machineOpt.orElseGet(() -> {
             ArcadeMachineEntity defaultMachine = new ArcadeMachineEntity();
-            String mId = req.getTagId().startsWith("MACH-") ? req.getTagId() : "MACH-A14";
+            String mId = tagId.startsWith("MACH-") ? tagId : "MACH-PHONE-2";
             defaultMachine.setMachineId(mId);
-            defaultMachine.setName(req.getTagId().contains("PHONE-2") ? "Cyber Strike 2077" : "Air Hockey Blitz");
-            defaultMachine.setTagId(req.getTagId());
+            defaultMachine.setName("Cyber Strike 2077");
+            defaultMachine.setTagId(tagId);
             defaultMachine.setCostCredits(10);
             defaultMachine.setCostAmount(10.0);
             defaultMachine.setSessionDuration(300);
             return machineRepository.save(defaultMachine);
         });
 
-        // Check for fraud
-        boolean isFraud = fraudDetectionService.isTransactionFraudulent(user.getId(), machine.getCostAmount(), req.getTagId());
+        // ML Fraud evaluation
+        boolean isFraud = fraudDetectionService.isTransactionFraudulent(user.getId(), machine.getCostAmount(), tagId);
         if (isFraud) {
             return new TransactionResponse(
                 false,
@@ -103,7 +104,7 @@ public class TransactionService {
             );
         }
 
-        // Verify balance
+        // Verify user balance
         if (user.getBalance() < machine.getCostAmount()) {
             return new TransactionResponse(
                 false,
@@ -123,7 +124,7 @@ public class TransactionService {
         user.setCredits((int) (newBalance / 10));
         userRepository.save(user);
 
-        // Record Transaction
+        // Record transaction in H2 database
         String txnId = "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         TransactionEntity txn = new TransactionEntity();
         txn.setId(txnId);
@@ -137,7 +138,7 @@ public class TransactionService {
         txn.setStatus("SUCCESS");
         transactionRepository.save(txn);
 
-        // Register active session for real-time polling by emulator / phone 2
+        // Register active session for real-time polling
         ActiveMachineSession activeSession = new ActiveMachineSession(
             txnId,
             user.getUsername(),
@@ -145,8 +146,11 @@ public class TransactionService {
             LocalDateTime.now(),
             machine.getSessionDuration()
         );
+        
+        // Map to specific machine ID, tag ID, and default target emulator fallback
         activeSessions.put(machine.getMachineId(), activeSession);
-        activeSessions.put(req.getTagId(), activeSession);
+        activeSessions.put(tagId, activeSession);
+        activeSessions.put("MACH-PHONE-2", activeSession);
 
         return new TransactionResponse(
             true,
@@ -161,9 +165,11 @@ public class TransactionService {
     }
 
     public MachineSessionStatusResponse getSessionStatus(String machineId) {
-        ActiveMachineSession session = activeSessions.get(machineId);
+        String key = (machineId == null || machineId.trim().isEmpty()) ? "MACH-PHONE-2" : machineId;
+        ActiveMachineSession session = activeSessions.get(key);
+        
         if (session == null) {
-            return new MachineSessionStatusResponse(machineId, "IDLE", 0, 0, null, null, null);
+            return new MachineSessionStatusResponse(key, "IDLE", 0, 0, null, null, null);
         }
 
         long elapsedSeconds = Duration.between(session.getStartTime(), LocalDateTime.now()).getSeconds();
@@ -171,7 +177,7 @@ public class TransactionService {
 
         if (remaining > 0) {
             return new MachineSessionStatusResponse(
-                machineId,
+                key,
                 "ACTIVE",
                 session.getDurationSeconds(),
                 remaining,
@@ -180,9 +186,9 @@ public class TransactionService {
                 session.getGameName()
             );
         } else {
-            activeSessions.remove(machineId);
+            activeSessions.remove(key);
             return new MachineSessionStatusResponse(
-                machineId,
+                key,
                 "IDLE",
                 session.getDurationSeconds(),
                 0,
@@ -197,7 +203,7 @@ public class TransactionService {
         if (machineId != null) {
             activeSessions.remove(machineId);
         }
+        activeSessions.remove("MACH-PHONE-2");
         return true;
     }
 }
-

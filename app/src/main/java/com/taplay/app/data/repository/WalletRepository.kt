@@ -1,6 +1,7 @@
 package com.taplay.app.data.repository
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -20,10 +21,9 @@ class WalletRepository(private val context: Context) {
     private val KEY_USERNAME = stringPreferencesKey("user_name")
     private val KEY_EMAIL = stringPreferencesKey("user_email")
 
-    // Default base URL for Android emulator / local testing (10.0.2.2 points to host machine)
-    private var baseUrl: String = "http://10.0.2.2:8080/"
+    // 127.0.0.1 routes via USB ADB reverse (adb reverse tcp:8080 tcp:8080) to your host machine
+    private var baseUrl: String = "http://127.0.0.1:8080/"
 
-    // Made public so it can be accessed by MainActivity / ViewModels directly
     val apiService: TaplayApiService by lazy {
         Retrofit.Builder()
             .baseUrl(baseUrl)
@@ -54,9 +54,11 @@ class WalletRepository(private val context: Context) {
                 saveLocalBalance(wallet.balance)
                 wallet
             } else {
+                Log.w("WalletRepository", "getWallet failed: ${response.code()}")
                 getFallbackWallet()
             }
         } catch (e: Exception) {
+            Log.e("WalletRepository", "getWallet exception: ${e.localizedMessage}", e)
             getFallbackWallet()
         }
     }
@@ -70,12 +72,14 @@ class WalletRepository(private val context: Context) {
                 saveLocalBalance(updated.balance)
                 updated
             } else {
+                Log.w("WalletRepository", "topUpWallet failed: ${response.code()}")
                 val current = getFallbackWallet()
                 val newBal = current.balance + amount
                 saveLocalBalance(newBal)
                 current.copy(balance = newBal, credits = (newBal / 10).toInt())
             }
         } catch (e: Exception) {
+            Log.e("WalletRepository", "topUpWallet exception: ${e.localizedMessage}", e)
             val current = getFallbackWallet()
             val newBal = current.balance + amount
             saveLocalBalance(newBal)
@@ -89,27 +93,34 @@ class WalletRepository(private val context: Context) {
             if (response.isSuccessful && response.body() != null) {
                 response.body()!!
             } else {
+                Log.w("WalletRepository", "getTransactions failed: ${response.code()}")
                 getFallbackTransactions()
             }
         } catch (e: Exception) {
+            Log.e("WalletRepository", "getTransactions exception: ${e.localizedMessage}", e)
             getFallbackTransactions()
         }
     }
 
     suspend fun startTransaction(tagId: String): TransactionResponse {
         return try {
+            Log.d("WalletRepository", "Sending startTransaction for tagId: $tagId")
             val req = StartTransactionRequest(tagId = tagId, userId = 1)
             val response = apiService.startTransaction(req)
+            
             if (response.isSuccessful && response.body() != null) {
                 val res = response.body()!!
+                Log.d("WalletRepository", "SUCCESS from Spring Boot: $res")
                 if (res.authorized) {
                     saveLocalBalance(res.remainingBalance)
                 }
                 res
             } else {
+                Log.e("WalletRepository", "Server error code: ${response.code()}")
                 mockStartTransaction(tagId)
             }
         } catch (e: Exception) {
+            Log.e("WalletRepository", "NETWORK ERROR hitting Spring Boot: ${e.localizedMessage}", e)
             mockStartTransaction(tagId)
         }
     }
@@ -122,13 +133,13 @@ class WalletRepository(private val context: Context) {
             saveLocalBalance(newBal)
             TransactionResponse(
                 authorized = true,
-                message = "Transaction Authorized via Physical Tag $tagId",
+                message = "Transaction Authorized via Local Tag $tagId",
                 transactionId = "TXN-${System.currentTimeMillis()}",
                 sessionDuration = 300,
                 creditsDeducted = 10,
                 remainingBalance = newBal,
                 machineName = "Air Hockey Blitz",
-                machineId = "MACH-#A14"
+                machineId = "MACH-PHONE-2"
             )
         } else {
             TransactionResponse(
@@ -156,41 +167,11 @@ class WalletRepository(private val context: Context) {
         Transaction(
             id = "TXN-9081",
             title = "Air Hockey Blitz",
-            machineId = "MACH-#A14",
+            machineId = "MACH-PHONE-2",
             amount = 10.0,
             credits = 10,
             type = "GAME_SESSION",
             timestamp = "Just Now",
-            status = "SUCCESS"
-        ),
-        Transaction(
-            id = "TXN-8812",
-            title = "Wallet Top-Up (Razorpay)",
-            machineId = "PAYMENT",
-            amount = 200.0,
-            credits = 200,
-            type = "TOP_UP",
-            timestamp = "Today, 02:15 PM",
-            status = "SUCCESS"
-        ),
-        Transaction(
-            id = "TXN-7612",
-            title = "Cyber Racer DX",
-            machineId = "MACH-#B02",
-            amount = 15.0,
-            credits = 15,
-            type = "GAME_SESSION",
-            timestamp = "Yesterday",
-            status = "SUCCESS"
-        ),
-        Transaction(
-            id = "TXN-6510",
-            title = "Basketball Hoops",
-            machineId = "MACH-#C07",
-            amount = 8.0,
-            credits = 8,
-            type = "GAME_SESSION",
-            timestamp = "2 Sep 2026",
             status = "SUCCESS"
         )
     )
