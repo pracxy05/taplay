@@ -98,8 +98,23 @@ fun TapScreen(
                             tagHex = "MACH-PHONE-2"
                         }
 
+                        // Decode ASCII hex → string to detect HCE machines broadcasting their ID
+                        // e.g. Galaxy Watch HCE sends CARD-WATCH-01 bytes; raw tag ID is those bytes
+                        val decodedAscii = runCatching {
+                            val bytes = ByteArray(tagHex.length / 2) { i ->
+                                tagHex.substring(i * 2, i * 2 + 2).toInt(16).toByte()
+                            }
+                            String(bytes, Charsets.UTF_8)
+                        }.getOrNull() ?: ""
+
+                        val resolvedTagId = when {
+                            decodedAscii.startsWith("CARD-WATCH") -> decodedAscii  // Galaxy Watch
+                            decodedAscii.startsWith("MACH-")      -> decodedAscii  // Phone emulator
+                            else                                  -> tagHex         // Physical NFC tag
+                        }
+
                         activity.runOnUiThread {
-                            detectedTagId = tagHex
+                            detectedTagId = resolvedTagId
                             if (stage == TapStage.WAITING) {
                                 stage = TapStage.DETECTED
                             }
@@ -503,7 +518,7 @@ private fun GameStartedOverlay(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Session active on MACH-PHONE-2",
+                text = "Session active on ${character.ifBlank { "MACH-PHONE-2" }}",
                 color = TaplayTextSecondary,
                 fontSize = 13.sp
             )

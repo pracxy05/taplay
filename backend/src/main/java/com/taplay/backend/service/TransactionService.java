@@ -44,6 +44,9 @@ public class TransactionService {
         private final String gameName;
         private final LocalDateTime startTime;
         private final int durationSeconds;
+        // Pause support
+        private long pauseOffsetSeconds = 0;
+        private LocalDateTime pausedAt = null;
 
         public ActiveMachineSession(String transactionId, String userName, String gameName, LocalDateTime startTime, int durationSeconds) {
             this.transactionId = transactionId;
@@ -58,6 +61,31 @@ public class TransactionService {
         public String getGameName() { return gameName; }
         public LocalDateTime getStartTime() { return startTime; }
         public int getDurationSeconds() { return durationSeconds; }
+
+        public boolean isPaused() { return pausedAt != null; }
+
+        /** Freeze the countdown; records current elapsed time. */
+        public void pause(LocalDateTime now) {
+            if (pausedAt == null) {
+                pausedAt = now;
+                pauseOffsetSeconds += Duration.between(startTime, now).getSeconds();
+            }
+        }
+
+        /** Resume: shift startTime forward so remaining time is correct. */
+        public void resume(LocalDateTime now) {
+            pausedAt = null;
+            // Reconstruct effective elapsed by keeping pauseOffsetSeconds unchanged
+        }
+
+        /** Returns effective elapsed seconds, accounting for pauses. */
+        public long effectiveElapsed(LocalDateTime now) {
+            if (isPaused()) {
+                return pauseOffsetSeconds;
+            }
+            return pauseOffsetSeconds + Duration.between(
+                pausedAt != null ? pausedAt : startTime, now).getSeconds();
+        }
     }
 
     @Transactional
@@ -147,10 +175,11 @@ public class TransactionService {
             machine.getSessionDuration()
         );
         
-        // Map to specific machine ID, tag ID, and default target emulator fallback
+        // Map to specific machine ID, tag ID, default emulator, and Galaxy Watch
         activeSessions.put(machine.getMachineId(), activeSession);
         activeSessions.put(tagId, activeSession);
         activeSessions.put("MACH-PHONE-2", activeSession);
+        activeSessions.put("CARD-WATCH-01", activeSession);
 
         return new TransactionResponse(
             true,
@@ -172,15 +201,17 @@ public class TransactionService {
             return new MachineSessionStatusResponse(key, "IDLE", 0, 0, null, null, null);
         }
 
-        long elapsedSeconds = Duration.between(session.getStartTime(), LocalDateTime.now()).getSeconds();
+        // Use pause-aware elapsed time
+        long elapsedSeconds = session.effectiveElapsed(LocalDateTime.now());
         int remaining = (int) (session.getDurationSeconds() - elapsedSeconds);
+        String status = session.isPaused() ? "PAUSED" : (remaining > 0 ? "ACTIVE" : "IDLE");
 
-        if (remaining > 0) {
+        if (remaining > 0 || session.isPaused()) {
             return new MachineSessionStatusResponse(
                 key,
-                "ACTIVE",
+                status,
                 session.getDurationSeconds(),
-                remaining,
+                Math.max(0, remaining),
                 session.getTransactionId(),
                 session.getUserName(),
                 session.getGameName()
@@ -199,11 +230,38 @@ public class TransactionService {
         }
     }
 
+    public boolean pauseSession(String machineId) {
+        ActiveMachineSession session = activeSessions.get(machineId);
+        if (session == null) {
+            session = activeSessions.get("CARD-WATCH-01");
+            if (session == null) session = activeSessions.get("MACH-PHONE-2");
+        }
+        if (session != null) {
+            session.pause(LocalDateTime.now());
+            return true;
+        }
+        return false;
+    }
+
+    public boolean resumeSession(String machineId) {
+        ActiveMachineSession session = activeSessions.get(machineId);
+        if (session == null) {
+            session = activeSessions.get("CARD-WATCH-01");
+            if (session == null) session = activeSessions.get("MACH-PHONE-2");
+        }
+        if (session != null) {
+            session.resume(LocalDateTime.now());
+            return true;
+        }
+        return false;
+    }
+
     public boolean endSession(String machineId) {
         if (machineId != null) {
             activeSessions.remove(machineId);
         }
         activeSessions.remove("MACH-PHONE-2");
+        activeSessions.remove("CARD-WATCH-01");
         return true;
     }
 }

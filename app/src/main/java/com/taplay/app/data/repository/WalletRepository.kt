@@ -21,12 +21,44 @@ class WalletRepository(private val context: Context) {
     private val KEY_USERNAME = stringPreferencesKey("user_name")
     private val KEY_EMAIL = stringPreferencesKey("user_email")
 
-    // 127.0.0.1 routes via USB ADB reverse (adb reverse tcp:8080 tcp:8080) to your host machine
-    private var baseUrl: String = "http://127.0.0.1:8080/"
+    private val candidateHosts = listOf(
+        "127.0.0.1:8080",
+        "192.168.0.114:8080",
+        "192.168.1.158:8080",
+        "192.168.1.162:8080"
+    )
+
+    private val okHttpClient: okhttp3.OkHttpClient by lazy {
+        okhttp3.OkHttpClient.Builder()
+            .connectTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+            .addInterceptor { chain ->
+                val req = chain.request()
+                var lastException: java.io.IOException? = null
+                for (host in candidateHosts) {
+                    val hostName = host.substringBefore(":")
+                    val hostPort = host.substringAfter(":").toIntOrNull() ?: 8080
+                    val newUrl = req.url().newBuilder().host(hostName).port(hostPort).build()
+                    val newReq = req.newBuilder().url(newUrl).build()
+                    try {
+                        val response = chain.proceed(newReq)
+                        if (response.isSuccessful || response.code() < 500) {
+                            return@addInterceptor response
+                        }
+                        response.close()
+                    } catch (e: java.io.IOException) {
+                        lastException = e
+                    }
+                }
+                throw lastException ?: java.io.IOException("No backend hosts reachable: $candidateHosts")
+            }
+            .build()
+    }
 
     val apiService: TaplayApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(baseUrl)
+            .baseUrl("http://192.168.1.162:8080/")
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(TaplayApiService::class.java)

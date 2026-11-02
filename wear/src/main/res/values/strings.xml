@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Taplay Watch</string>
+    <string name="hce_service_description">Taplay Wear NFC Virtual Card</string>
+    <string name="hce_aid_group_description">Taplay Arcade Token</string>
+</resources>

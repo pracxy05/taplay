@@ -26,6 +26,12 @@ public class WalletController {
         return ResponseEntity.ok(user);
     }
 
+    /** Alias for /wallet — used by the Wear OS app to fetch the user profile. */
+    @GetMapping("/profile")
+    public ResponseEntity<UserEntity> getUserProfile(@RequestParam(defaultValue = "1") Long userId) {
+        return getWalletInfo(userId);
+    }
+
     @PostMapping("/topup")
     public ResponseEntity<UserEntity> topUpWallet(@RequestBody TopUpRequest req) {
         Long userId = req.getUserId() != null ? req.getUserId() : 1L;
