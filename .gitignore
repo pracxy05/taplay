@@ -9,7 +9,13 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+build/
+app/build/
+wear/build/
+backend/target/
+target/
+*.log
+fraud_service/venv/
+fraud_service/__pycache__/
+
+

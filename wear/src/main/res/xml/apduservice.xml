@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    HCE APDU service descriptor for the Taplay Wear virtual card.
+    Supports both:
+    1. Common Taplay AID: F0010203040506
+    2. NFC Forum Type 4 Tag NDEF Application: D2760000850101
+    3. Proprietary AID: F054415043415957522052
+-->
+<host-apdu-service
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/hce_service_description"
+    android:requireDeviceUnlock="false">
+
+    <aid-group
+        android:description="@string/hce_aid_group_description"
+        android:category="other">
+
+        <!-- Common Taplay AID -->
+        <aid-filter android:name="F0010203040506" />
+        <!-- NFC Forum Type 4 Tag NDEF Application -->
+        <aid-filter android:name="D2760000850101" />
+        <!-- Proprietary AID for Taplay Wear virtual card -->
+        <aid-filter android:name="F054415043415957522052" />
+
+    </aid-group>
+
+</host-apdu-service>

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Taplay</string>
+    <string name="hce_aid_description">Taplay Arcade Payment AID</string>
 </resources>

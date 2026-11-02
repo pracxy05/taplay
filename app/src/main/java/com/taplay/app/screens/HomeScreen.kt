@@ -52,9 +52,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,6 +89,9 @@ fun HomeScreen(
     var showMenu by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val walletRepo = remember { com.taplay.app.data.repository.WalletRepository(context) }
+    val userBalance by walletRepo.cachedBalance.collectAsState(initial = 540.0)
+    val userName by walletRepo.cachedUsername.collectAsState(initial = "Praharsh")
     val nfcAdapter = remember { NfcAdapter.getDefaultAdapter(context) }
 
     Box(
@@ -152,7 +158,7 @@ fun HomeScreen(
             }
 
             item {
-                WalletOverviewCard()
+                WalletOverviewCard(balance = userBalance)
             }
 
             item {
@@ -426,7 +432,7 @@ private fun HeroTapCard(
 }
 
 @Composable
-private fun WalletOverviewCard() {
+private fun WalletOverviewCard(balance: Double) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(32.dp),
@@ -448,7 +454,7 @@ private fun WalletOverviewCard() {
             ) {
                 SmallStatCard(
                     title = "Credit Balance",
-                    value = "₹ 540",
+                    value = "₹ ${balance.toInt()}",
                     bg = Color(0xFFF7F3EC),
                     modifier = Modifier.weight(1f)
                 )

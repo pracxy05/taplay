@@ -5,12 +5,13 @@ plugins {
 
 android {
     namespace = "com.taplay.app"
-    compileSdk = 36
+    compileSdk = 34
+    // Removed buildToolsVersion "34.0.0" to suppress the Gradle build warning
 
     defaultConfig {
         applicationId = "com.taplay.app"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -24,19 +25,21 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            applicationIdSuffix = ".emulator"
+            resValue("string", "app_name", "Taplay Emulator")
+        }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlin {
-        jvmToolchain(11)
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {
         compose = true
+        resValues = true
+        buildConfig = true
     }
 }
 

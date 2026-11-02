@@ -24,4 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Taplay"
 include(":app")
- 
+include(":wear")
